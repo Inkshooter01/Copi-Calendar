@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copi Print — Calendario Operativo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0e0f; --surface: #161618; --border: #252528;
+  --text: #e8e8ea; --muted: #55555f; --accent: #f0c040;
+  --day-w: 160px;
+  --slot-h: 28px;
+}
+html, body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; }
+body { padding: 28px 20px 60px; min-width: max-content; }
+
+header { display:flex; align-items:baseline; gap:16px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:18px; }
+header h1 { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; color:var(--accent); letter-spacing:-0.3px; }
+header span { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:.06em; }
+
+.legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-bottom:24px; max-width:900px; }
+.legend-item { display:flex; align-items:center; gap:5px; font-family:'DM Mono',monospace; font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+.legend-dot { width:7px; height:7px; border-radius:2px; flex-shrink:0; }
+
+.week-block { margin-bottom:16px; }
+.week-label { font-family:'Syne',sans-serif; font-size:11px; font-weight:800; color:var(--accent); letter-spacing:.1em; text-transform:uppercase; padding:10px 0 6px; border-top:1px solid var(--border); margin-top:4px; }
+
+.week-grid { display:flex; gap:5px; }
+
+.day-box { background:var(--surface); border:1px solid var(--border); border-radius:6px; overflow:hidden; width:var(--day-w); flex-shrink:0; }
+.day-box.weekend { background:#111113; }
+.day-box.today { border-color:var(--accent); box-shadow:0 0 0 1px #f0c04033; }
+
+.day-head { padding:7px 8px 5px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:baseline; }
+.d-num { font-family:'DM Mono',monospace; font-size:12px; font-weight:600; color:var(--muted); }
+.day-box.today .d-num { color:var(--accent); }
+.d-name { font-family:'DM Mono',monospace; font-size:8px; color:#333338; text-transform:uppercase; letter-spacing:.08em; }
+.today-badge { font-family:'DM Mono',monospace; font-size:7px; background:var(--accent); color:#0e0e0f; padding:1px 4px; border-radius:2px; font-weight:700; letter-spacing:.05em; }
+
+.slots { padding:4px 5px; display:flex; flex-direction:column; gap:2px; }
+.slot { min-height:var(--slot-h); flex-shrink:0; }
+
+.chip {
+  border-radius:3px;
+  padding:0 6px;
+  font-size:10px;
+  font-weight:500;
+  color:#0d0d0d;
+  width:100%;
+
+  display:flex;
+  align-items:center;
+
+
+
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>COPI PRINT / OPERACIONES</h1>
+  <span>28 MAY — 14 JUN 2026</span>
+</header>
+
+<div class="legend" id="legend"></div>
+<div id="cal"></div>
+
+<script>
+const P = {
+  vapordome:  {name:"Vapordome",        color:"#e8d84a"},
+  goldRoses:  {name:"Gold Roses",       color:"#e8734a"},
+  eis:        {name:"EIS — Número",     color:"#c084ff"},
+  credidemo:  {name:"Credidemo",        color:"#b87fff"},
+  arista:     {name:"Arista — Acríl.",  color:"#ffb84a"},
+  lunarKotex: {name:"Lunar Kotex",      color:"#ff4a6b"},
+  frigTrip:   {name:"Frigid. Trípt.",   color:"#5aaeff"},
+  frigAce:    {name:"Frigid. Acetatos", color:"#3a8ed4"},
+  frigPort:   {name:"Frigid. Portería", color:"#2a9fd0"},
+  cargill:    {name:"Cargill Freezers", color:"#6dde8b"},
+  biotech:    {name:"Biotech",          color:"#ff6b9d"},
+  goldChick:  {name:"Gold Chicken SB",  color:"#ff8c42"},
+  expoHoreca: {name:"Expo Horeca",      color:"#7a8a9a"},
+  superbarato:{name:"Superbarato",      color:"#ff6b6b"},
+  paseoBot:   {name:"Paseo Botánico",   color:"#4adec8"},
+  ferdy:      {name:"Ferdy Rivera",     color:"#67e8f9"},
+  roda:       {name:"Roda Coffee",      color:"#86efac"},
+  cck:        {name:"CCK — Tgcpa.",     color:"#a78bfa"},
+};
+
+const weeks = [
+  {
+    label:"Mayo 2026",
+    projects:["vapordome","goldRoses","eis","credidemo","arista","lunarKotex","frigTrip","frigAce","frigPort","cargill","biotech","goldChick","expoHoreca","superbarato","paseoBot","ferdy"],
+    days:[
+      {date:"28",name:"Jue",weekend:false,today:true},
+      {date:"29",name:"Vie",weekend:true},
+      {date:"30",name:"Sáb",weekend:true},
+      {date:"31",name:"Dom",weekend:true},
+    ],
+    milestones:{
+      vapordome:  {0:"Impr. reflectiva + troquel urgente", 1:"Entrega posible"},
+      goldRoses:  {0:"Corte MDF — inicio (AR.5884)", 1:"Corte MDF cont.", 2:"Pintura MDF"},
+      eis:        {0:"Pegado · Lijado · Masilla · Pintura", 1:"Entrega [URGENTE]"},
+      credidemo:  {0:"Corte láser — inicio", 2:"Pegado + Armado + Env. Tgcpa.", 3:"Contingencia"},
+      arista:     {0:"Validar envío/corte (Don Roberto)", 1:"Confirmar corte", 2:"Recoger acrílico + Sandblast"},
+      lunarKotex: {1:"Soldadura + Impr. [URGENTE]", 2:"Fabricación marcos chapa 18"},
+      frigTrip:   {0:"Impr. — inicio", 1:"Impr. cont.", 2:"Impr. cont.", 3:"Impr. cierre"},
+      frigAce:    {0:"Imprimir continuo", 2:"Cont. si necesario"},
+      frigPort:   {1:"Compras: malla+PVC+hierro [CRÍTICO]", 2:"Fabricación marcos", 3:"Fab. cont. + PVC+malla"},
+      cargill:    {0:"Impr. continua", 1:"Impr. cont."},
+      biotech:    {0:"Fabricar muestra", 1:"Entregar muestra"},
+      goldChick:  {0:"Impr. formato ancho", 1:"Impr. lonas", 2:"Cont. impr./corte", 3:"Contingencia"},
+      expoHoreca: {1:"Desmontaje PM: CISA + V.Santos + Cosquiza"},
+      superbarato:{1:"Recoger rótulo garantía"},
+      paseoBot:   {0:"Preparar cortes ACM"},
+      ferdy:      {0:"Abrir proyecto / asignar diseño"},
+    }
+  },
+  {
+    label:"Junio 2026 — Semana 1",
+    projects:["goldRoses","lunarKotex","frigTrip","frigAce","frigPort","cargill","biotech","goldChick","superbarato","paseoBot"],
+    days:[
+      {date:"1", name:"Lun",weekend:false},
+      {date:"2", name:"Mar",weekend:false},
+      {date:"3", name:"Mié",weekend:false},
+      {date:"4", name:"Jue",weekend:false},
+      {date:"5", name:"Vie",weekend:true},
+      {date:"6", name:"Sáb",weekend:true},
+      {date:"7", name:"Dom",weekend:true},
+    ],
+    milestones:{
+      goldRoses:  {0:"Entrega (sin inst.)"},
+      lunarKotex: {0:"Entrega + Semi-inst. [URGENTE]"},
+      frigTrip:   {0:"Fab: pegado + armado", 1:"Armado final", 2:"Entrega miércoles"},
+      frigAce:    {0:"Impr. semana — inicio", 1:"Impr. cont.", 2:"Impr. cont.", 3:"Impr. cierre jue/vie", 4:"Corte día o noche", 5:"Entrega local SPS"},
+      frigPort:   {0:"Entrega 2 unidades [CRÍTICO]"},
+      cargill:    {0:"Posible inicio instalación", 1:"Instalación cont."},
+      biotech:    {0:"Inicio prod. (si aprueban)", 1:"Producción", 2:"Producción", 3:"Producción", 4:"Producción cont."},
+      goldChick:  {0:"Inst. Santa Cruz", 1:"Contingencia S.Cruz", 3:"Terminar pendientes", 5:"Contingencia cierre"},
+      superbarato:{0:"Reparación taller", 1:"Terminar reparación", 2:"Reinstalación"},
+      paseoBot:   {1:"Fab. ACM — avanzar", 2:"Fab. ACM", 3:"ACM meta entrega", 4:"Entrega / Cierre ACM"},
+    }
+  },
+  {
+    label:"Junio 2026 — Semana 2",
+    projects:["biotech","cck","ferdy","roda"],
+    days:[
+      {date:"8", name:"Lun",weekend:false},
+      {date:"9", name:"Mar",weekend:false},
+      {date:"10",name:"Mié",weekend:false},
+      {date:"11",name:"Jue",weekend:false},
+      {date:"12",name:"Vie",weekend:true},
+      {date:"13",name:"Sáb",weekend:true},
+      {date:"14",name:"Dom",weekend:true},
+    ],
+    milestones:{
+      biotech:{0:"Preparar instalación", 1:"Instalación día 1", 2:"Instalación día 2", 3:"Instalación día 3"},
+      cck:    {0:"Prep: soldadura + logística + materiales", 1:"Artes finales + materiales listos", 2:"Logística viaje — última prep", 4:"Viaje Tgcpa + Inst. día 1", 5:"Instalación día 2", 6:"Instalación / Regreso"},
+      ferdy:  {3:"Entrega directorio acrílico"},
+      roda:   {3:"Entrega tentativa"},
+    }
+  }
+];
+
+// legend
+const leg = document.getElementById('legend');
+Object.entries(P).forEach(([k,p]) => {
+  leg.innerHTML += `<div class="legend-item"><div class="legend-dot" style="background:${p.color}"></div>${p.name}</div>`;
+});
+
+// render
+const cal = document.getElementById('cal');
+weeks.forEach(week => {
+  const block = document.createElement('div');
+  block.className = 'week-block';
+  block.innerHTML = `<div class="week-label">${week.label}</div>`;
+
+  const grid = document.createElement('div');
+  grid.className = 'week-grid';
+
+  week.days.forEach((d, di) => {
+    const box = document.createElement('div');
+    box.className = 'day-box' + (d.weekend ? ' weekend' : '') + (d.today ? ' today' : '');
+
+    box.innerHTML = d.today
+      ? `<div class="day-head"><span class="d-num">${d.date} <span class="today-badge">HOY</span></span><span class="d-name">${d.name}</span></div>`
+      : `<div class="day-head"><span class="d-num">${d.date}</span><span class="d-name">${d.name}</span></div>`;
+
+    const slots = document.createElement('div');
+    slots.className = 'slots';
+
+    week.projects.forEach(pid => {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      const ms = week.milestones[pid]?.[di];
+      if (ms) {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.style.background = P[pid].color;
+        chip.title = P[pid].name + " — " + ms; // full text on hover
+        chip.textContent = P[pid].name + " — " + ms;
+        slot.appendChild(chip);
+      }
+      slots.appendChild(slot);
+    });
+
+    box.appendChild(slots);
+    grid.appendChild(box);
+  });
+
+  block.appendChild(grid);
+  cal.appendChild(block);
+});
+</script>
+</body>
+</html>
